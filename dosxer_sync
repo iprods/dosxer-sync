@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+
+#
+# This script aims to ease the use of the unison sync process.
+# Basically it does:
+# * Initially sync of the sync container
+# * Start the dev environment with the container as volume
+# * Pipes the output to a log file for reference
+# * Runs in the background so the user is best not noticing it at all
+#
+version="0.1.0"
+script_dir="$( dirname "${BASH_SOURCE[0]}" )"
+sync_dir=`pwd`
+# TODO Make configurable
+sync_log=${sync_dir}/dosxer_sync.log
+sync_pid=${sync_dir}/dosxer_sync.pid
+
+function notify_user {
+	message=$1
+	terminal-notifier -title "Dosxer sync" -activate "com.apple.Terminal" -message "${message}"
+}
+
+function perform_initial_stack_sync {
+	echo -e "  Performing initial sync"
+	start=`date +%s`
+	# TODO Make compose file configurable.
+	# TODO Check for sync_pid if starting another sync.
+	# First to be sure down the stack
+	docker-compose -f docker-compose.yml -f docker-compose-dev.yml down >/dev/null 2>&1
+	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d >/dev/null 2>&1
+
+	# TODO Make ignore parts and host/port configurable.
+	# Initial sync. This should end successfully.
+	unison . socket://localhost:5000/ -ignore 'Path .git' -ignore 'Name .unison*' -ignore 'Path docker' -ignore 'Name docker*' -ignore 'Name dosxer*' -auto -batch -silent -logfile ${sync_log} >/dev/null 2>&1
+	end=`date +%s`
+	runtime=$((end-start))
+	echo -e "\x1b[0;32m✓ \x1b[0mPerforming initial sync"
+	# Notify user
+	if [[ $@ -eq 0 ]]; then
+		notify_user "✓ Initial sync has finished in ${runtime}s. Reloading and startinig to watch stack."
+	else
+		notify_user "✝ Initial sync has failed after ${runtime}s. Please see sync.log for details."
+	fi
+}
+
+function watch_stack {
+	echo -ne "  Restarting and starting to watch for changes. Some more sync might be done in the background if something has to be installed."
+	rm ${sync_pid} >/dev/null 2>&1
+	rm ${sync_log} >/dev/null 2>&1
+	docker-compose -f docker-compose.yml -f docker-compose-dev.yml stop >/dev/null 2>&1
+	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d >/dev/null 2>&1
+	if [[ $@ -eq 0 ]]; then
+		notify_user "✓ Starting to watch stack. [$!]"
+		# TODO Make ignore parts and host/port configurable.
+		nohup unison . socket://localhost:5000/ -ignore 'Name sync.*' -ignore 'Path .git'  -ignore 'Name .unison*'  -ignore 'Path docker' -ignore 'Name docker*'  -ignore 'Name dosxer*' -ignore 'Path node_modules/.staging' -auto -batch -repeat watch  -logfile ${sync_log} >/dev/null 2>&1 &
+		# TODO Check for sync_pid if starting another sync.
+		echo $! > ${sync_pid}
+	else
+		notify_user "✝ Reloading stack failed. Please see sync.log for details."
+	fi
+}
+
+function restart_sync_stack {
+	if [[ ! -f ${sync_pid} ]]; then
+		echo -e "\x1b[0;31mNo pid file found. Please check for a unison manually.\x1b[0m"
+		return
+	fi
+	kill -15 $(cat ${sync_dir}/dosxer_sync.pid)
+	rm ${sync_pid} >/dev/null 2>&1
+	rm ${sync_log} >/dev/null 2>&1
+	docker-compose -f docker-compose.yml -f docker-compose-dev.yml restart >/dev/null 2>&1
+	nohup unison . socket://localhost:5000/ -ignore 'Name sync.*' -ignore 'Path .git'  -ignore 'Name .unison*'  -ignore 'Path docker' -ignore 'Name docker*'  -ignore 'Name dosxer*' -ignore 'Path node_modules/.staging' -auto -batch -repeat watch  -logfile ${sync_log} >/dev/null 2>&1 &
+	echo $! > ${sync_pid}
+	if [[ $@ -eq 0 ]]; then
+		notify_user "✓ Restarted stack. [$!]"
+	else
+		notify_user "✝ Restart failed."
+	fi
+}
+
+function stop_sync_stack {
+	docker-compose -f docker-compose.yml -f docker-compose-dev.yml stop >/dev/null 2>&1
+	if [[ ! -f ${sync_pid} ]]; then
+		notify_user "✝ Local unison process could not be stopped. Please use ps aux | grep unison and kill -15 the process yourself."
+		echo -e "\x1b[0;31mNo pid file found. Please check for a unison process manually.\x1b[0m"
+		return
+	fi
+	kill -15 $(cat ${sync_pid})
+	rm ${sync_pid} >/dev/null 2>&1
+	rm ${sync_log} >/dev/null 2>&1
+	if [[ $@ -eq 0 ]]; then
+		notify_user "✓ Stopped stack."
+	else
+		notify_user "✝ Stopping failed."
+	fi
+}
+
+echo "
+Welcome to dosxer-sync v${version}.
+
+You can do the following things:
+1) Start sync stack
+2) Restart sync stack
+3) Stop sync stack
+4) Perform initial sync
+	"
+read -p "What do you want to do? " choice
+case "$choice" in 
+	1 ) watch_stack;;
+	2 ) restart_sync_stack;;
+	3 ) stop_sync_stack;;
+	4 ) perform_initial_stack_sync; watch_stack;;
+	* ) exit 1;;
+esac
