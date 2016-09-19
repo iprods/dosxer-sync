@@ -12,89 +12,116 @@ version="0.1.0"
 script_dir="$( dirname "${BASH_SOURCE[0]}" )"
 sync_dir=`pwd`
 # TODO Make configurable
+sync_container_pattern="container_name.*dosxer"
 sync_log=${sync_dir}/dosxer_sync.log
-sync_pid=${sync_dir}/dosxer_sync.pid
+sync_pid=${sync_dir}/.dosxer_sync.pid
 
+# Send desktop notifications to the user
 function notify_user {
 	message=$1
 	terminal-notifier -title "Dosxer sync" -activate "com.apple.Terminal" -message "${message}"
 }
 
+# Grep out the host bound port of the sync container
+function get_host_port {
+	# TODO This is a clumsy approach. Look how it can be approved.
+	echo $(docker inspect --format="{{json .NetworkSettings.Ports }}" $(docker-compose -f docker-compose.yml -f docker-compose-dev.yml config | grep -e "${sync_container_pattern}" | cut -d " " -f6) | cut -d \" -f10)
+}
+
+# Start unison bg process
+function start_host_unison {
+	# TODO Make ignore filters configurable or better use a prf file.
+	nohup unison ${sync_dir} socket://localhost:$(get_host_port)/ -ignore 'Name sync.*' -ignore 'Path .git' -ignore 'Path docker' -ignore 'Name docker*' -ignore 'Name *dosxer*' -ignore 'Path node_modules/.staging' -auto -batch -repeat watch >${sync_log} 2>&1 &
+	echo $! > ${sync_pid}
+}
+
+# Tear down the local / host unison process
+function stop_host_unison {
+	if [[ ! -f ${sync_pid} ]]; then
+		echo -e "  \x1b[0;33mNo pid file found. Nothing to stop.\x1b[0m"
+		return
+	fi
+	kill -15 $(cat ${sync_pid}) >/dev/null 2>&1
+	rm ${sync_pid} >/dev/null 2>&1
+}
+
+# Perform an initial one-time-sync to avoid problems if a volume dependent container cannot be started
 function perform_initial_stack_sync {
 	echo -e "  Performing initial sync"
 	start=`date +%s`
 	# TODO Make compose file configurable.
-	# TODO Check for sync_pid if starting another sync.
-	# First to be sure down the stack
+	stop_host_unison
+	# First to be sure purge the stack
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml down >/dev/null 2>&1
-	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d >/dev/null 2>&1
-
-	# TODO Make ignore parts and host/port configurable.
+	output_docker=$(docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d 2>&1)
+	if [[ ! $? -eq 0 ]]; then
+		# Most likely a port clash
+		echo -e "\x1b[0;31mFailed to start stack. Reason: ${output_docker}\x1b[0m"
+		notify_user "✝ Failed to start stack. Please see terminal for info."
+		exit 1
+	fi
+	# TODO Make ignore filters configurable.
 	# Initial sync. This should end successfully.
-	unison . socket://localhost:5000/ -ignore 'Path .git' -ignore 'Name .unison*' -ignore 'Path docker' -ignore 'Name docker*' -ignore 'Name dosxer*' -auto -batch -silent -logfile ${sync_log} >/dev/null 2>&1
+	unison ${sync_dir} socket://localhost:$(get_host_port)/ -ignore 'Path .git' -ignore 'Name .unison*' -ignore 'Path docker' -ignore 'Name *docker*' -ignore 'Name dosxer*' -auto -batch -silent >${sync_log} 2>&1
 	end=`date +%s`
 	runtime=$((end-start))
 	echo -e "\x1b[0;32m✓ \x1b[0mPerforming initial sync"
 	# Notify user
 	if [[ $@ -eq 0 ]]; then
-		notify_user "✓ Initial sync has finished in ${runtime}s. Reloading and startinig to watch stack."
+		notify_user "✓ Initial sync has finished in ${runtime}s. Reloading and starting to watch stack."
 	else
-		notify_user "✝ Initial sync has failed after ${runtime}s. Please see sync.log for details."
+		notify_user "✝ Initial sync has failed after ${runtime}s. Please see ${sync_log} for details."
 	fi
 }
 
+# Start the docker stack and start the local unison client
 function watch_stack {
-	echo -ne "  Restarting and starting to watch for changes. Some more sync might be done in the background if something has to be installed."
-	rm ${sync_pid} >/dev/null 2>&1
+	echo -e "  Starting to watch for changes..."
+	stop_host_unison
 	rm ${sync_log} >/dev/null 2>&1
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml stop >/dev/null 2>&1
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d >/dev/null 2>&1
-	if [[ $@ -eq 0 ]]; then
-		notify_user "✓ Starting to watch stack. [$!]"
-		# TODO Make ignore parts and host/port configurable.
-		nohup unison . socket://localhost:5000/ -ignore 'Name sync.*' -ignore 'Path .git'  -ignore 'Name .unison*'  -ignore 'Path docker' -ignore 'Name docker*'  -ignore 'Name dosxer*' -ignore 'Path node_modules/.staging' -auto -batch -repeat watch  -logfile ${sync_log} >/dev/null 2>&1 &
-		# TODO Check for sync_pid if starting another sync.
-		echo $! > ${sync_pid}
+	if [[ $? -eq 0 ]]; then
+		start_host_unison
+		notify_user "✓ Starting to watch stack. [unison pid: $!; local port: $(get_host_port)]"
 	else
-		notify_user "✝ Reloading stack failed. Please see sync.log for details."
+		notify_user "✝ Starting stack failed. Please see ${sync_log} for details."
 	fi
 }
 
+# Restart the docker stack and the local unison client
 function restart_sync_stack {
-	if [[ ! -f ${sync_pid} ]]; then
-		echo -e "\x1b[0;31mNo pid file found. Please check for a unison manually.\x1b[0m"
-		return
-	fi
-	kill -15 $(cat ${sync_dir}/dosxer_sync.pid)
-	rm ${sync_pid} >/dev/null 2>&1
+	echo -e "  Restarting stack..."
+	stop_host_unison
 	rm ${sync_log} >/dev/null 2>&1
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml restart >/dev/null 2>&1
-	nohup unison . socket://localhost:5000/ -ignore 'Name sync.*' -ignore 'Path .git'  -ignore 'Name .unison*'  -ignore 'Path docker' -ignore 'Name docker*'  -ignore 'Name dosxer*' -ignore 'Path node_modules/.staging' -auto -batch -repeat watch  -logfile ${sync_log} >/dev/null 2>&1 &
-	echo $! > ${sync_pid}
-	if [[ $@ -eq 0 ]]; then
-		notify_user "✓ Restarted stack. [$!]"
+	start_host_unison
+	if [[ $? -eq 0 ]]; then
+		notify_user "✓ Restarted stack. [$!; local port: $(get_host_port)]"
 	else
 		notify_user "✝ Restart failed."
 	fi
 }
 
 function stop_sync_stack {
+	echo -e "  Stopping stack..."
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml stop >/dev/null 2>&1
 	if [[ ! -f ${sync_pid} ]]; then
-		notify_user "✝ Local unison process could not be stopped. Please use ps aux | grep unison and kill -15 the process yourself."
-		echo -e "\x1b[0;31mNo pid file found. Please check for a unison process manually.\x1b[0m"
+		notify_user "✝ Local unison process could not be stopped. See terminal for more information."
+		echo -e "\x1b[0;31mNo pid file found. Please use ps aux | grep unison and kill -15 the process yourself.\x1b[0m"
 		return
 	fi
 	kill -15 $(cat ${sync_pid})
 	rm ${sync_pid} >/dev/null 2>&1
 	rm ${sync_log} >/dev/null 2>&1
-	if [[ $@ -eq 0 ]]; then
+	if [[ $? -eq 0 ]]; then
 		notify_user "✓ Stopped stack."
 	else
-		notify_user "✝ Stopping failed."
+		notify_user "✝ Failed to stop stack."
 	fi
 }
 
+# TODO Replace by arguments
 echo "
 Welcome to dosxer-sync v${version}.
 

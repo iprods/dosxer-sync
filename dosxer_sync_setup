@@ -82,7 +82,7 @@ In your 'docker-compose-dev.yml' add something like this:
     volumes:
       - /var/www/html
     ports:  
-      - \"5000:5000\"
+      - \"5000\"
 \x1b[0m
 Then issue the sync command:
 \x1b[0;33m

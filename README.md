@@ -10,7 +10,7 @@ Run `dosxer_sync_setup`. This will install all needed prerequisites.
 
 * Checks if `brew` is available (see http://brew.sh/ for installation instructions)
 * Installs `unison` via `brew` for the two-way-sync (see https://github.com/bcpierce00/unison)
-* Installs `terminal-notifier` via `brew` for Desktop notification (see https://github.com/julienXX/terminal-notifier)
+* Installs `terminal-notifier` via `brew` for Desktop notifications (see https://github.com/julienXX/terminal-notifier)
 * Installs `MacFSEvents` via `pip` for filesystem event handling (might require `sudo` privileges when using stock Python; then please manually install it) (see https://github.com/malthe/macfsevents)
 * Installs `unox` as glue for `unison` and filesystem events (see https://github.com/hnsl/unox)
 
@@ -21,24 +21,27 @@ Basically you only need to add an additional `docker-compose` file that defines 
 ```
   app:
     volumes_from:
-      - unison
-  unison:
-    container_name: sync_unison
+      - dosxer_sync
+  dosxer_sync:
+    container_name: project_dosxer
     image: onnimonni/unison:latest
     environment:
-      - UNISON_DIR=/var/www/html
+      - UNISON_DIR=/app
       - UNISON_UID=501 # Default UID of the OSX user; might be overwritten with an .env file
     volumes:
-      - /var/www/html
+      - /app
     ports:  
-      - "5000:5000"
+      - "5000"
 ```
 
+If you bind also the host port please ensure that it is free. `dosxer-sync` normally handles this for you.
+
 Currently the convention is that the file needs to be named `docker-compose-dev.yml` and the base file must read `docker-compose.yml`.
+The sync container name also has to contain `dosxer` so it can be detected to extract the local port assignement.
 
 After that you can just run the `dosxer_sync` script from within the directory you have setup the `docker-compose` stack.
 
->Note: If you want you can also link the script to a folder in your `PATH` for global usage.
+>Note: If you want you can also link the script to a folder in your `PATH` for global usage, e.g. `ln -s $(pwd)/dosxer_sync /usr/local/bin/dosxer_sync`.
 
 ### What it does
 
@@ -46,12 +49,13 @@ After that you can just run the `dosxer_sync` script from within the directory y
 
 `dosxer-sync` uses an intermediary container that abstracts away `unison` on the Docker side. Locally `unison` is run in client mode (connect via socket to the sync container) and propagates the changes to the local filesystem (of the folder defined to sync) as well as syncs the changes from the sync container back to the local filesystem.
 
-As the sync is performed via `unsion` the volume exposed by the sync container is a native linux volume and hence very fast. `unison` itself is also very fast and clever.
+As the sync is performed via `unsion` the volume exposed by the sync container is a native linux volume and hence very fast. `unison` itself is also very fast.
 
 ## Known issues & limitations
 
-* Sometimes if a a lot of files need to be synced the sync process hangs. Workaround is to restart the stack (via the `docker_sync`)
+* Sometimes if a a lot of files need to be synced the sync process hangs. Workaround is to restart the stack (via the `docker_sync` command). This likely is caused by a large amount of files (e.g. an Angular project with a lot of `node_modules`). Eventually it will sync properly.
 * There is currently no configuration possible.
+* There are some conventions that need to be followed for now.
 * It's not very battle-proof yet.
 
 ## Alternatives
