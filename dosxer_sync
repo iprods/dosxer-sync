@@ -105,13 +105,13 @@ function restart_sync_stack {
 
 function stop_sync_stack {
 	echo -e "  Stopping stack..."
-	docker-compose -f docker-compose.yml -f docker-compose-dev.yml stop >/dev/null 2>&1
 	if [[ ! -f ${sync_pid} ]]; then
 		notify_user "✝ Local unison process could not be stopped. See terminal for more information."
 		echo -e "\x1b[0;31mNo pid file found. Please use ps aux | grep unison and kill -15 the process yourself.\x1b[0m"
 		return
 	fi
-	kill -15 $(cat ${sync_pid})
+	kill -15 $(cat ${sync_pid}) >/dev/null 2>&1
+	docker-compose -f docker-compose.yml -f docker-compose-dev.yml stop >/dev/null 2>&1
 	rm ${sync_pid} >/dev/null 2>&1
 	rm ${sync_log} >/dev/null 2>&1
 	if [[ $? -eq 0 ]]; then
