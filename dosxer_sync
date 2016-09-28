@@ -142,12 +142,24 @@ function destroy_sync_stack {
     fi
 }
 
+# Destroy the complete stack
+function destroy {
+    while true; do
+        read -p "Do you want to destroy? (y/N) " yn
+        case ${yn} in
+            [Yy]* ) destroy_sync_stack; break;;
+            [Nn]* ) exit;;
+            * ) exit;;
+        esac
+    done
+}
+
 # Reset the sync stack
 function reset {
     while true; do
         read -p "Do you want to reset the sync? (y/N) " yn
         case ${yn} in
-            [Yy]* ) rm ${sync_init} >/dev/null 2>&1; perform_initial_stack_sync; start_sync_stack;;
+            [Yy]* ) rm ${sync_init} >/dev/null 2>&1; perform_initial_stack_sync; start_sync_stack; break;;
             [Nn]* ) exit;;
             * ) exit;;
         esac
@@ -171,6 +183,7 @@ function get_help {
     stop    : Stop the sync container and the local sync process
     reset   : Reset the sync container (same as init)
     destroy : Remove the sync container and stop the local sync process
+    logs    : Tail the local sync log
 
     The following options are applicable:
 
@@ -182,7 +195,7 @@ function get_help {
 # run program
 
 [ $# -eq 0 ] && { get_short_help; exit 1; }
-valid_actions=( start restart stop reset destroy )
+valid_actions=( start restart stop reset destroy logs )
 valid=0
 
 for i in "$@"; do
@@ -215,6 +228,7 @@ case "${action}" in
     "start" ) start_sync_stack;;
     "restart" ) restart_sync_stack;;
     "stop" ) stop_sync_stack;;
-    "destroy" ) destroy_sync_stack;;
+    "destroy" ) destroy;;
+    "logs" ) tail -F ${sync_log};;
     * ) exit 1;;
 esac
