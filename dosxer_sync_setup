@@ -4,50 +4,50 @@ script_dir="$( dirname "${BASH_SOURCE[0]}" )"
 brew_check=0
 
 function install_brew {
-	if [[ ${brew_check} -eq 1 ]]; then
-		return
-	fi
-	echo -ne "  Checking Homebrew\r"
-	command -v brew >/dev/null 2>&1 || { 
-		echo -e "\x1b[0;31m✝ \x1b[0mChecking Homebrew"
-	    echo >&2 "Homebrew is not installed. Please install."
-#	    echo >&2 " Downloading and running installer..."
-#	    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-	}
-	brew_check=1
-	echo -e "\x1b[0;32m✓ \x1b[0mChecking Homebrew"
+    if [[ ${brew_check} -eq 1 ]]; then
+        return
+    fi
+    echo -ne "  Checking Homebrew\r"
+    command -v brew >/dev/null 2>&1 || { 
+        echo -e "\x1b[0;31m✝ \x1b[0mChecking Homebrew"
+        echo >&2 "Homebrew is not installed. Please install."
+#       echo >&2 " Downloading and running installer..."
+#       ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    }
+    brew_check=1
+    echo -e "\x1b[0;32m✓ \x1b[0mChecking Homebrew"
 }
 
 function install_brew_prerequisites {
-	local cmd=$1
-	command -v ${cmd} >/dev/null 2>&1 || {
-		install_brew
-		echo -ne "  Installing ${cmd}\r"
-		brew install ${cmd} >/dev/null 2>&1
-		echo -e "\x1b[0;32m✓ \x1b[0mInstalling ${cmd}"
-	}
+    local cmd=$1
+    command -v ${cmd} >/dev/null 2>&1 || {
+        install_brew
+        echo -ne "  Installing ${cmd}\r"
+        brew install ${cmd} >/dev/null 2>&1
+        echo -e "\x1b[0;32m✓ \x1b[0mInstalling ${cmd}"
+    }
 }
 
 function install_pip_prerequisites {
-	local package=$1
-	pip show ${package} >/dev/null 2>&1
-	if [[ $? -eq 1 ]]; then
-		echo -ne "  Installing ${package}\r"
-		pip install ${package} >/dev/null 2>&1
-		echo -e "\x1b[0;32m✓ \x1b[0mInstalling ${package}"
-	fi
+    local package=$1
+    pip show ${package} >/dev/null 2>&1
+    if [[ $? -eq 1 ]]; then
+        echo -ne "  Installing ${package}\r"
+        pip install ${package} >/dev/null 2>&1
+        echo -e "\x1b[0;32m✓ \x1b[0mInstalling ${package}"
+    fi
 }
 
 function install_unox_prerequisites {
-	local cmd_name="unison-fsmonitor"
-	local cmd="/usr/local/bin/unison-fsmonitor"
-	if [[ ! -f ${cmd} ]]; then
-		echo -ne "  Installing ${cmd_name}\r"
-		# TODO Check hash to avoid security issues.
-		curl -o ${cmd} -L https://raw.githubusercontent.com/hnsl/unox/master/unox.py  >/dev/null 2>&1
-		chmod +x ${cmd} >/dev/null 2>&1
-		echo -e "\x1b[0;32m✓ \x1b[0mInstalling ${cmd_name}"
-	fi
+    local cmd_name="unison-fsmonitor"
+    local cmd="/usr/local/bin/unison-fsmonitor"
+    if [[ ! -f ${cmd} ]]; then
+        echo -ne "  Installing ${cmd_name}\r"
+        # TODO Check hash to avoid security issues.
+        curl -o ${cmd} -L https://raw.githubusercontent.com/hnsl/unox/master/unox.py  >/dev/null 2>&1
+        chmod +x ${cmd} >/dev/null 2>&1
+        echo -e "\x1b[0;32m✓ \x1b[0mInstalling ${cmd_name}"
+    fi
 }
 
 # Needed for the sync itself
