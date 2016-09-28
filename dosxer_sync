@@ -142,6 +142,18 @@ function destroy_sync_stack {
     fi
 }
 
+# Reset the sync stack
+function reset {
+    while true; do
+        read -p "Do you want to reset the sync? (y/N) " yn
+        case ${yn} in
+            [Yy]* ) rm ${sync_init} >/dev/null 2>&1; perform_initial_stack_sync; start_sync_stack;;
+            [Nn]* ) exit;;
+            * ) exit;;
+        esac
+    done
+}
+
 # Get the short help text
 function get_short_help {
     echo "Usage: $0 start|restart|stop|reset|destroy"
@@ -199,7 +211,7 @@ if [ ${valid} == 0 ]; then
     exit 1
 fi
 case "${action}" in 
-    "reset" ) rm ${sync_init} >/dev/null 2>&1; perform_initial_stack_sync; start_sync_stack;;
+    "reset" ) reset;;
     "start" ) start_sync_stack;;
     "restart" ) restart_sync_stack;;
     "stop" ) stop_sync_stack;;
