@@ -17,6 +17,7 @@ sync_dir=`pwd`
 sync_container_pattern="container_name.*dosxer"
 sync_log=${sync_dir}/dosxer_sync.log
 sync_pid=${sync_dir}/.dosxer_sync.pid
+sync_init=${sync_dir}/.dosxer_init
 
 # Send desktop notifications to the user
 function notify_user {
@@ -69,6 +70,7 @@ function perform_initial_stack_sync {
     end=`date +%s`
     runtime=$((end-start))
     echo -e "\x1b[0;32m✓ \x1b[0mPerforming initial sync"
+    touch ${sync_init}
     # Notify user
     if [[ $@ -eq 0 ]]; then
         notify_user "✓ Initial sync has finished in ${runtime}s. Reloading and starting to watch stack."
@@ -79,6 +81,9 @@ function perform_initial_stack_sync {
 
 # Start the docker stack and start the local unison client
 function start_sync_stack {
+    if [ ! -f ${sync_init} ]; then
+        perform_initial_stack_sync
+    fi
     echo -e "  Starting to watch for changes..."
     stop_host_unison
     rm ${sync_log} >/dev/null 2>&1
@@ -129,6 +134,7 @@ function destroy_sync_stack {
     stop_host_unison
     # First to be sure purge the stack
     docker-compose -f docker-compose.yml -f docker-compose-dev.yml down >/dev/null 2>&1
+    rm ${sync_init} >/dev/null 2>&1;
     if [[ $? -eq 0 ]]; then
         notify_user "✓ Torn down stack."
     else
@@ -138,7 +144,7 @@ function destroy_sync_stack {
 
 # Get the short help text
 function get_short_help {
-    echo "Usage: $0 init|start|restart|stop|reset|destroy"
+    echo "Usage: $0 start|restart|stop|reset|destroy"
 }
 
 # Get the full help text
@@ -148,8 +154,7 @@ function get_help {
 
     The following actions are possible:
 
-    init    : Initialize the sync container
-    start   : Start the sync container and the local sync process
+    start   : Init or just start the sync container and the local sync process
     restart : Restart the sync container and the local sync process
     stop    : Stop the sync container and the local sync process
     reset   : Reset the sync container (same as init)
@@ -165,7 +170,7 @@ function get_help {
 # run program
 
 [ $# -eq 0 ] && { get_short_help; exit 1; }
-valid_actions=( init start restart stop reset destroy )
+valid_actions=( start restart stop reset destroy )
 valid=0
 
 for i in "$@"; do
@@ -194,7 +199,7 @@ if [ ${valid} == 0 ]; then
     exit 1
 fi
 case "${action}" in 
-    "init"|"reset" ) perform_initial_stack_sync; start_sync_stack;;
+    "reset" ) rm ${sync_init} >/dev/null 2>&1; perform_initial_stack_sync; start_sync_stack;;
     "start" ) start_sync_stack;;
     "restart" ) restart_sync_stack;;
     "stop" ) stop_sync_stack;;

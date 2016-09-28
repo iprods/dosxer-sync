@@ -51,6 +51,14 @@ After that you can just run the `dosxer_sync` script from within the directory y
 
 As the sync is performed via `unsion` the volume exposed by the sync container is a native linux volume and hence very fast. `unison` itself is also very fast.
 
+### Files generated
+
+`dosxer-sync` creates some files to handling the local sync. These are:
+
+* `.dosxer.pid` to hold the local unison process id
+* `.dosxer_init` to mark a stack to be initially synced
+* `dosxer.log` to hold the log for the local sync
+
 ## Known issues & limitations
 
 * Sometimes if a a lot of files need to be synced the sync process hangs. Workaround is to restart the stack (via the `docker_sync` command). This likely is caused by a large amount of files (e.g. an Angular project with a lot of `node_modules`). Eventually it will sync properly.
