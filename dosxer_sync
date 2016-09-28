@@ -77,7 +77,7 @@ function perform_initial_stack_sync {
 }
 
 # Start the docker stack and start the local unison client
-function watch_stack {
+function start_sync_stack {
     echo -e "  Starting to watch for changes..."
     stop_host_unison
     rm ${sync_log} >/dev/null 2>&1
@@ -123,10 +123,24 @@ function stop_sync_stack {
     fi
 }
 
+# Stop the unison client and tear down the Docker container
+function destroy_sync_stack {
+    stop_host_unison
+    # First to be sure purge the stack
+    docker-compose -f docker-compose.yml -f docker-compose-dev.yml down >/dev/null 2>&1
+    if [[ $? -eq 0 ]]; then
+        notify_user "✓ Torn down stack."
+    else
+        notify_user "✝ Failed to tear down stack."
+    fi
+}
+
+# Get the short help text
 function get_short_help {
     echo "Usage: $0 init|start|restart|stop|reset|destroy"
 }
 
+# Get the full help text
 function get_help {
     echo "
     Welcome to dosxer-sync v${version}.
@@ -179,10 +193,10 @@ if [ ${valid} == 0 ]; then
     exit 1
 fi
 case "${action}" in 
-    "init"|"reset" ) perform_initial_stack_sync; watch_stack;;
-    "start" ) watch_stack;;
+    "init"|"reset" ) perform_initial_stack_sync; start_sync_stack;;
+    "start" ) start_sync_stack;;
     "restart" ) restart_sync_stack;;
     "stop" ) stop_sync_stack;;
-    "destroy" ) echo "Not yet implemented"; exit 0;;
+    "destroy" ) destroy_sync_stack;;
     * ) exit 1;;
 esac
