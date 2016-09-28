@@ -43,8 +43,9 @@ function stop_host_unison {
         echo -e "  \x1b[0;33mNo pid file found. Nothing to stop.\x1b[0m"
         return
     fi
-    kill -15 $(cat ${sync_pid}) >/dev/null 2>&1
+    pid=$(cat ${sync_pid})
     rm ${sync_pid} >/dev/null 2>&1
+    kill -15 ${pid} >/dev/null 2>&1
 }
 
 # Perform an initial one-time-sync to avoid problems if a volume dependent container cannot be started
