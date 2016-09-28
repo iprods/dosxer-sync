@@ -34,7 +34,7 @@ function get_host_port {
 # Start unison bg process
 function start_host_unison {
     # TODO Make ignore filters configurable or better use a prf file.
-    nohup unison ${sync_dir} socket://localhost:$(get_host_port)/ -ignore 'Name sync.*' -ignore 'Path .git' -ignore 'Path docker' -ignore 'Name docker*' -ignore 'Name *dosxer*' -ignore 'Path node_modules/.staging' -auto -batch -repeat watch >${sync_log} 2>&1 &
+    nohup unison ${sync_dir} socket://localhost:$(get_host_port)/ -ignore 'Name sync.*' -ignore 'Path .git' -ignore 'Path docker' -ignore 'Name docker*' -ignore 'Name .dosxer*' -ignore 'Name dosxer_sync.log' -ignore 'Path node_modules/.staging' -auto -batch -repeat watch >${sync_log} 2>&1 &
     echo $! > ${sync_pid}
 }
 
