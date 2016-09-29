@@ -149,7 +149,7 @@ function destroy {
     else
         read -p "Do you want to destroy? (y/N) " yn
         case ${yn} in
-            [Yy]* ) destroy_sync_stack; break;;
+            [Yy]* ) destroy_sync_stack;;
             [Nn]* ) exit;;
             * ) exit;;
         esac
@@ -165,7 +165,7 @@ function reset {
     else
         read -p "Do you want to reset the sync? (y/N) " yn
         case ${yn} in
-            [Yy]* ) rm ${sync_init} >/dev/null 2>&1; perform_initial_stack_sync; start_sync_stack; break;;
+            [Yy]* ) rm ${sync_init} >/dev/null 2>&1; perform_initial_stack_sync; start_sync_stack;;
             [Nn]* ) exit;;
             * ) exit;;
         esac
