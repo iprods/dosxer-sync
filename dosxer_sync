@@ -144,26 +144,32 @@ function destroy_sync_stack {
 
 # Destroy the complete stack
 function destroy {
-    while true; do
+    if [ ${quiet_mode} == 1 ]; then
+        destroy_sync_stack
+    else
         read -p "Do you want to destroy? (y/N) " yn
         case ${yn} in
             [Yy]* ) destroy_sync_stack; break;;
             [Nn]* ) exit;;
             * ) exit;;
         esac
-    done
+    fi
 }
 
 # Reset the sync stack
 function reset {
-    while true; do
+    if [ ${quiet_mode} == 1 ]; then
+        rm ${sync_init} >/dev/null 2>&1
+        perform_initial_stack_sync
+        start_sync_stack
+    else
         read -p "Do you want to reset the sync? (y/N) " yn
         case ${yn} in
             [Yy]* ) rm ${sync_init} >/dev/null 2>&1; perform_initial_stack_sync; start_sync_stack; break;;
             [Nn]* ) exit;;
             * ) exit;;
         esac
-    done
+    fi
 }
 
 # Get the short help text
@@ -189,6 +195,7 @@ function get_help {
 
     -h, --help Display this help
     -v, --version Display the version
+    -q, --no-interaction Don't ask when destroying or resetting
     "
 } 
 
@@ -197,6 +204,7 @@ function get_help {
 [ $# -eq 0 ] && { get_short_help; exit 1; }
 valid_actions=( start restart stop reset destroy logs )
 valid=0
+quiet_mode=0
 
 for i in "$@"; do
     case ${i} in
@@ -207,6 +215,9 @@ for i in "$@"; do
         -v|--version)
             echo "dosxer-sync v${version}"
             exit 0
+        ;;
+        -q|--no-interaction)
+            quiet_mode=1
         ;;
         *)
         for j in "${valid_actions[@]}"; do

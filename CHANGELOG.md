@@ -2,6 +2,7 @@
 
 ## 0.1.0 (Not released)
 
+* [ADD] Add no-interaction mode for destroy and reset
 * [ADD] Tailing of local sync log
 * [ADD] Installation to /usr/local/bin
 * [ADD] Auto init on start if needed
