@@ -10,7 +10,7 @@ function check_for_brew {
     echo -ne "  Checking Homebrew\r"
     command -v brew >/dev/null 2>&1 || { 
         echo -e "\x1b[0;31m✝ \x1b[0mChecking Homebrew"
-        echo >&2 "Homebrew is not installed. Please install."
+        echo >&2 "Homebrew is not installed. Please install. See http://brew.sh"
         exit 1
     }
     brew_check=1
@@ -27,12 +27,28 @@ function install_brew_prerequisites {
     }
 }
 
+function check_for_pip {
+    local cmd_name="pip"
+    echo -ne "  Checking pip\r"
+    command -v ${cmd_name} >/dev/null 2>&1 || {
+        echo -e "\x1b[0;31m✝ \x1b[0mChecking pip"
+        echo >&2 "pip is needed but not found. Please install pip first: sudo easy_install pip"
+        exit 1
+    }
+    echo -e "\x1b[0;32m✓ \x1b[0mChecking pip"
+}
+
 function install_pip_prerequisites {
     local package=$1
     pip show ${package} >/dev/null 2>&1
     if [[ $? -eq 1 ]]; then
         echo -ne "  Installing ${package}\r"
         pip install ${package} >/dev/null 2>&1
+        if [[ $? -eq 1 ]]; then
+            echo -e "\x1b[0;31m✝ \x1b[0mInstalling ${package}"
+            echo >&2 "Could not install ${package}. Likely you are using the stock Python and need sudo rights. Try: sudo pip install ${package}"
+            exit 1
+        fi
         echo -e "\x1b[0;32m✓ \x1b[0mInstalling ${package}"
     fi
 }
@@ -53,7 +69,7 @@ function install_to_path {
     while true; do
         read -p "Do you wish to install dosxer_sync to /usr/local/bin? (y/N) " yn
         case ${yn} in
-            [Yy]* ) ln -nfs `pwd`/dosxer_sync /usr/local/bin/dosxer_sync; break;;
+            [Yy]* ) cp `pwd`/dosxer_sync /usr/local/lib && ln -nfs /usr/local/lib/dosxer_sync /usr/local/bin/dosxer_sync; break;;
             [Nn]* ) exit;;
             * ) exit;;
         esac
@@ -65,6 +81,7 @@ install_brew_prerequisites unison
 # Mainly installed to be able to display errors while syncing
 install_brew_prerequisites terminal-notifier
 # File system watcher components on the host
+check_for_pip
 install_pip_prerequisites MacFSEvents
 install_unox_prerequisites
 # Install to user accessible path

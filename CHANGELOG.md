@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.1.0 (Not released)
+## 0.1.1 (2017-01-29)
+
+* [CHANGE] Improve setup for stock versions of Python
+* [FIX] Add missing argument to short help output
+
+## 0.1.0 (2016-09-29)
 
 * [ADD] Add no-interaction mode for destroy and reset
 * [ADD] Tailing of local sync log

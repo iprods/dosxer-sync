@@ -10,7 +10,7 @@ set -o pipefail
 # * Pipes the output to a log file for reference
 # * Runs in the background so the user is best not noticing it at all
 #
-version="0.1.0"
+version="0.1.1"
 script_dir="$( dirname "${BASH_SOURCE[0]}" )"
 sync_dir=`pwd`
 # TODO Make configurable
@@ -174,7 +174,7 @@ function reset {
 
 # Get the short help text
 function get_short_help {
-    echo "Usage: $0 start|restart|stop|reset|destroy"
+    echo "Usage: $0 start|restart|stop|reset|destroy|logs"
 }
 
 # Get the full help text
