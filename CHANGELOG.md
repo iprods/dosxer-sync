@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 (Not released)
+
+* [NEW] Add support for custom unison sync profile settings
+* [CHANGE] Create unison profile template instead of using arguments
+* [CHANGE] Check inital sync return code to detect a failed sync
+* [FIX] Scope of some variables
+
 ## 0.1.1 (2017-01-29)
 
 * [CHANGE] Improve setup for stock versions of Python

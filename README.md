@@ -44,6 +44,10 @@ After that you can just run the `dosxer_sync` script from within the directory y
 
 >Note: If you want you can also link the script to a folder in your `PATH` for global usage, e.g. `ln -s $(pwd)/dosxer_sync /usr/local/bin/dosxer_sync`.
 
+### Customization
+
+Per default `dosxer-sync` takes the current working directory to sync with some default ignore paths like `.git` and the likes. By providing an additional file named `dosxer_unison.conf` you can add additional ignore patterns. Please see http://www.cis.upenn.edu/~bcpierce/unison/download/releases/stable/unison-manual.html#prefs for futher information.
+
 ### What it does
 
 `unsion` can be seen as a two-way `rsync`. It is very stable and mature.
@@ -78,6 +82,7 @@ A non exhaustive list:
 * https://github.com/leighmcculloch/docker-unison : The base for the above project
 * https://github.com/mickaelperrin/docker-magic-sync : This is in most parts incorporated in `docker-sync`
 * https://github.com/brikis98/docker-osx-dev : Works only with `docker-machine` IIRC
+* https://github.com/cweagans/docker-bg-sync : Two directory sync with unison
 
 ## Credits
 
