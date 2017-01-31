@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 (2017-01-31)
+
+* [FIX] Fix timing issues with more complex stacks by only starting the sync container on initial sync
+* [CHANGE] Extract docker-compose command to variable
+
 ## 0.1.1 (2017-01-29)
 
 * [CHANGE] Improve setup for stock versions of Python

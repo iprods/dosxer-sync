@@ -10,7 +10,7 @@ set -o pipefail
 # * Pipes the output to a log file for reference
 # * Runs in the background so the user is best not noticing it at all
 #
-version="0.1.1"
+version="0.1.2"
 script_dir="$( dirname "${BASH_SOURCE[0]}" )"
 sync_dir=`pwd`
 # TODO Make configurable
@@ -18,6 +18,7 @@ sync_container_pattern="container_name.*dosxer"
 sync_log=${sync_dir}/dosxer_sync.log
 sync_pid=${sync_dir}/.dosxer_sync.pid
 sync_init=${sync_dir}/.dosxer_init
+docker_compose_cmd="docker-compose -f docker-compose.yml -f docker-compose-dev.yml"
 
 # Send desktop notifications to the user
 function notify_user {
@@ -28,7 +29,12 @@ function notify_user {
 # Grep out the host bound port of the sync container
 function get_host_port {
     # TODO This is a clumsy approach. Look how it can be approved.
-    echo $(docker inspect --format="{{json .NetworkSettings.Ports }}" $(docker-compose -f docker-compose.yml -f docker-compose-dev.yml config | grep -e "${sync_container_pattern}" | cut -d " " -f6) | cut -d \" -f10)
+    echo $(docker inspect --format="{{json .NetworkSettings.Ports }}" $(${docker_compose_cmd} config | grep -e "${sync_container_pattern}" | cut -d " " -f6) | cut -d \" -f10)
+}
+
+# Get the service name of the sync service; convention is to contain the string dosxer
+function get_dosxer_service_name {
+    echo $(${docker_compose_cmd} config --services | grep dosxer)
 }
 
 # Start unison bg process
@@ -56,8 +62,8 @@ function perform_initial_stack_sync {
     # TODO Make compose file configurable.
     stop_host_unison
     # First to be sure purge the stack
-    docker-compose -f docker-compose.yml -f docker-compose-dev.yml down >/dev/null 2>&1
-    output_docker=$(docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d 2>&1)
+    ${docker_compose_cmd} down >/dev/null 2>&1
+    output_docker=$(${docker_compose_cmd} up -d $(get_dosxer_service_name) 2>&1)
     if [[ ! $? -eq 0 ]]; then
         # Most likely a port clash
         echo -e "\x1b[0;31mFailed to start stack. Reason: ${output_docker}\x1b[0m"
@@ -87,8 +93,8 @@ function start_sync_stack {
     echo -e "  Starting to watch for changes..."
     stop_host_unison
     rm ${sync_log} >/dev/null 2>&1
-    docker-compose -f docker-compose.yml -f docker-compose-dev.yml stop >/dev/null 2>&1
-    docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d >/dev/null 2>&1
+    ${docker_compose_cmd} stop >/dev/null 2>&1
+    ${docker_compose_cmd} up -d >/dev/null 2>&1
     if [[ $? -eq 0 ]]; then
         start_host_unison
         notify_user "✓ Starting to watch stack. [unison pid: $!; local port: $(get_host_port)]"
@@ -102,7 +108,7 @@ function restart_sync_stack {
     echo -e "  Restarting stack..."
     stop_host_unison
     rm ${sync_log} >/dev/null 2>&1
-    docker-compose -f docker-compose.yml -f docker-compose-dev.yml restart >/dev/null 2>&1
+    ${docker_compose_cmd} restart >/dev/null 2>&1
     start_host_unison
     if [[ $? -eq 0 ]]; then
         notify_user "✓ Restarted stack. [$!; local port: $(get_host_port)]"
@@ -119,7 +125,7 @@ function stop_sync_stack {
         return
     fi
     kill -15 $(cat ${sync_pid}) >/dev/null 2>&1
-    docker-compose -f docker-compose.yml -f docker-compose-dev.yml stop >/dev/null 2>&1
+    ${docker_compose_cmd} stop >/dev/null 2>&1
     rm ${sync_pid} >/dev/null 2>&1
     rm ${sync_log} >/dev/null 2>&1
     if [[ $? -eq 0 ]]; then
@@ -133,7 +139,7 @@ function stop_sync_stack {
 function destroy_sync_stack {
     stop_host_unison
     # First to be sure purge the stack
-    docker-compose -f docker-compose.yml -f docker-compose-dev.yml down >/dev/null 2>&1
+    ${docker_compose_cmd} down >/dev/null 2>&1
     rm ${sync_init} >/dev/null 2>&1;
     if [[ $? -eq 0 ]]; then
         notify_user "✓ Torn down stack."

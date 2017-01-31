@@ -22,8 +22,8 @@ Basically you only need to add an additional `docker-compose` file that defines 
 ```
   app:
     volumes_from:
-      - dosxer_sync
-  dosxer_sync:
+      - dosxer
+  dosxer:
     container_name: project_dosxer
     image: onnimonni/unison:latest
     environment:
