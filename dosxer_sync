@@ -10,7 +10,7 @@ set -o pipefail
 # * Pipes the output to a log file for reference
 # * Runs in the background so the user is best not noticing it at all
 #
-version="0.1.2"
+version="0.1.3"
 script_dir="$( dirname "${BASH_SOURCE[0]}" )"
 sync_dir=`pwd`
 # TODO Make configurable
