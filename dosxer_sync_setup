@@ -59,8 +59,8 @@ function install_unox_prerequisites {
     if [[ ! -f ${cmd} ]]; then
         echo -ne "  Installing ${cmd_name}\r"
         # TODO Check hash to avoid security issues.
-        curl -o ${cmd} -L https://raw.githubusercontent.com/hnsl/unox/master/unox.py  >/dev/null 2>&1
-        chmod +x ${cmd} >/dev/null 2>&1
+        brew tap eugenmayer/dockersync
+        brew install eugenmayer/dockersync/unox
         echo -e "\x1b[0;32m✓ \x1b[0mInstalling ${cmd_name}"
     fi
 }
@@ -78,8 +78,6 @@ function install_to_path {
 
 # Needed for the sync itself
 install_brew_prerequisites unison
-# Mainly installed to be able to display errors while syncing
-install_brew_prerequisites terminal-notifier
 # File system watcher components on the host
 check_for_pip
 install_pip_prerequisites MacFSEvents
@@ -88,7 +86,7 @@ install_unox_prerequisites
 install_to_path
 
 # Output some data to the user
-terminal-notifier -title "Dosxer sync" -activate "com.apple.Terminal" -message "
+echo -e "
 ✓ Setup has finished. Please see terminal output for more.
 "
 

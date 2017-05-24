@@ -23,7 +23,7 @@ docker_compose_cmd="docker-compose -f docker-compose.yml -f docker-compose-dev.y
 # Send desktop notifications to the user
 function notify_user {
     message=$1
-    terminal-notifier -title "Dosxer sync" -activate "com.apple.Terminal" -message "${message}"
+    echo -e "${message}"
 }
 
 # Grep out the host bound port of the sync container

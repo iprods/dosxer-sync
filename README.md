@@ -10,9 +10,8 @@ Run `dosxer_sync_setup`. This will install all needed prerequisites.
 
 * Checks if `brew` is available (see http://brew.sh/ for installation instructions)
 * Installs `unison` via `brew` for the two-way-sync (see https://github.com/bcpierce00/unison)
-* Installs `terminal-notifier` via `brew` for Desktop notifications (see https://github.com/julienXX/terminal-notifier)
 * Installs `MacFSEvents` via `pip` for filesystem event handling (might require `sudo` privileges when using stock Python; then please manually install it) (see https://github.com/malthe/macfsevents)
-* Installs `unox` as glue for `unison` and filesystem events (see https://github.com/hnsl/unox)
+* Installs `unox` as via `brew` glue for `unison` and filesystem events (see https://github.com/hnsl/unox)
 * Install `dosxer_sync` to `/usr/local/bin` (optional)
 
 ## Usage

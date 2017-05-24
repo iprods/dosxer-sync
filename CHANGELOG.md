@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3 (2017-05-23)
+
+* [FIX] Install Unox using the [recommended method](https://github.com/hnsl/unox/blob/master/README.md#installation-via-homebrew)
+* [FIX] Remove terminal-notifier as version 1.8.0 hangs, causing dosxer-sync itself to hang
+
 ## 0.1.2 (2017-01-31)
 
 * [FIX] Fix timing issues with more complex stacks by only starting the sync container on initial sync
